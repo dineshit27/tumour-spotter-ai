@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Brain, Menu, X } from "lucide-react";
 
 const Navigation = () => {
@@ -24,13 +25,13 @@ const Navigation = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <Brain className="h-8 w-8 text-primary group-hover:text-primary-glow transition-colors" />
-            <span className="text-xl font-bold text-medical-dark">
+            <span className="text-xl font-bold text-foreground">
               Brain Tumour Detector
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -38,12 +39,13 @@ const Navigation = () => {
                 className={`text-sm font-medium transition-colors hover:text-primary ${
                   isActive(item.path)
                     ? "text-primary border-b-2 border-primary"
-                    : "text-medical-dark"
+                    : "text-foreground"
                 }`}
               >
                 {item.name}
               </Link>
             ))}
+            <ThemeToggle />
             <Button 
               asChild 
               className="bg-gradient-primary hover:shadow-medical transition-all duration-300"
@@ -53,12 +55,13 @@ const Navigation = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="text-medical-dark"
+              className="text-foreground"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
@@ -75,8 +78,8 @@ const Navigation = () => {
                   to={item.path}
                   className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                     isActive(item.path)
-                      ? "text-primary bg-medical-light"
-                      : "text-medical-dark hover:text-primary hover:bg-medical-light"
+                      ? "text-primary bg-primary/10"
+                      : "text-foreground hover:text-primary hover:bg-primary/5"
                   }`}
                   onClick={() => setIsOpen(false)}
                 >

@@ -25,6 +25,7 @@ interface AnalysisResult {
 
 const TryNow = () => {
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -92,6 +93,13 @@ const TryNow = () => {
 
     setFile(selectedFile);
     setResult(null);
+    
+    // Create preview URL for image files
+    if (selectedFile.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setFilePreview(previewUrl);
+    }
+    
     toast({
       title: "File uploaded successfully",
       description: `${selectedFile.name} is ready for analysis`
@@ -146,9 +154,15 @@ const TryNow = () => {
 
   const handleReset = () => {
     setFile(null);
+    setFilePreview(null);
     setResult(null);
     setIsAnalyzing(false);
     setAnalysisProgress(0);
+    
+    // Clean up the preview URL
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+    }
   };
 
   return (
@@ -156,7 +170,7 @@ const TryNow = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl lg:text-5xl font-bold text-medical-dark mb-6">
+          <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
             AI Brain Tumor Detection
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -177,7 +191,7 @@ const TryNow = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Upload Section */}
           <Card className="p-8 bg-gradient-card border-0 shadow-card">
-            <h2 className="text-2xl font-semibold text-medical-dark mb-6 flex items-center">
+            <h2 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
               <Upload className="mr-3 h-6 w-6 text-primary" />
               Upload MRI Scan
             </h2>
@@ -194,7 +208,7 @@ const TryNow = () => {
                 onDragLeave={handleDragLeave}
               >
                 <FileImage className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-medical-dark mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Drop your MRI scan here
                 </h3>
                 <p className="text-muted-foreground mb-6">
@@ -218,29 +232,49 @@ const TryNow = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-medical-light rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <FileImage className="h-8 w-8 text-primary" />
-                      <div>
-                        <p className="font-semibold text-medical-dark">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(file.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
+                {/* File Info and Preview */}
+                <div className="bg-medical-light dark:bg-muted rounded-xl p-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* File Info */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <FileImage className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="font-semibold text-foreground">{file.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <CheckCircle className="h-6 w-6 text-success" />
                       </div>
+                      
+                      {isAnalyzing && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Analyzing scan...</span>
+                            <span>{analysisProgress}%</span>
+                          </div>
+                          <Progress value={analysisProgress} className="h-2" />
+                        </div>
+                      )}
                     </div>
-                    <CheckCircle className="h-6 w-6 text-success" />
+                    
+                    {/* Image Preview */}
+                    {filePreview && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">Preview:</p>
+                        <div className="relative rounded-lg overflow-hidden bg-muted/50 border">
+                          <img 
+                            src={filePreview} 
+                            alt="MRI Scan Preview" 
+                            className="w-full h-48 object-contain"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  {isAnalyzing && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Analyzing scan...</span>
-                        <span>{analysisProgress}%</span>
-                      </div>
-                      <Progress value={analysisProgress} className="h-2" />
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex space-x-4">
@@ -271,7 +305,7 @@ const TryNow = () => {
 
           {/* Results Section */}
           <Card className="p-8 bg-gradient-card border-0 shadow-card">
-            <h2 className="text-2xl font-semibold text-medical-dark mb-6 flex items-center">
+            <h2 className="text-2xl font-semibold text-foreground mb-6 flex items-center">
               <Brain className="mr-3 h-6 w-6 text-primary" />
               Analysis Results
             </h2>
@@ -315,7 +349,7 @@ const TryNow = () => {
 
                 {/* Recommendations */}
                 <div>
-                  <h4 className="font-semibold text-medical-dark mb-3">Recommendations:</h4>
+                  <h4 className="font-semibold text-foreground mb-3">Recommendations:</h4>
                   <ul className="space-y-2">
                     {result.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start space-x-2 text-sm">
@@ -347,8 +381,8 @@ const TryNow = () => {
         </div>
 
         {/* Technical Info */}
-        <Card className="mt-12 p-8 bg-medical-light border-0">
-          <h3 className="text-xl font-semibold text-medical-dark mb-4">How It Works</h3>
+        <Card className="mt-12 p-8 bg-medical-light dark:bg-muted border-0">
+          <h3 className="text-xl font-semibold text-foreground mb-4">How It Works</h3>
           <div className="grid md:grid-cols-3 gap-6 text-sm">
             <div className="space-y-2">
               <div className="font-semibold text-primary">1. Image Processing</div>

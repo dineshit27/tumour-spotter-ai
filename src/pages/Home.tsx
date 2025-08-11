@@ -69,7 +69,7 @@ const Home = () => {
                   asChild 
                   variant="outline" 
                   size="lg"
-                  className="border-white text-white hover:bg-white/10 text-lg px-8"
+                  className="border-white/50 text-white hover:bg-white/10 hover:border-white text-lg px-8"
                 >
                   <Link to="/about">Learn More</Link>
                 </Button>
@@ -124,7 +124,7 @@ const Home = () => {
       <section className="py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-medical-dark mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
               Why Choose Our Detection Platform?
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -140,7 +140,7 @@ const Home = () => {
                   <div className="p-3 bg-primary/10 rounded-xl w-fit group-hover:bg-primary/20 transition-colors">
                     <feature.icon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold text-medical-dark">
+                  <h3 className="text-xl font-semibold text-foreground">
                     {feature.title}
                   </h3>
                   <p className="text-muted-foreground">

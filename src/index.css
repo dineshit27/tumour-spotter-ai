@@ -50,8 +50,10 @@ All colors MUST be HSL.
     --shadow-medical: 0 4px 20px hsl(210 100% 45% / 0.15);
     --shadow-card: 0 2px 10px hsl(215 25% 27% / 0.08);
     --shadow-elevated: 0 8px 30px hsl(215 25% 27% / 0.12);
-
-    --radius: 0.5rem;
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -130,6 +132,11 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+  
+  /* Smooth transitions for theme changes */
+  *, *::before, *::after {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
   }
 }

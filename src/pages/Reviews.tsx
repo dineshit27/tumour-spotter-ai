@@ -204,7 +204,7 @@ const Reviews = () => {
             <Button 
               asChild 
               size="lg" 
-              className="bg-white text-primary hover:bg-white/90 hover:shadow-elevated"
+              className="bg-white text-primary hover:bg-white/90 hover:shadow-elevated text-lg px-8"
             >
               <Link to="/try-now">Start Free Trial</Link>
             </Button>
@@ -212,7 +212,7 @@ const Reviews = () => {
               asChild 
               variant="outline" 
               size="lg"
-              className="border-white text-white hover:bg-white/10"
+              className="border-white/50 text-white hover:bg-white/10 hover:border-white text-lg px-8"
             >
               <Link to="/contact">Contact Our Team</Link>
             </Button>
