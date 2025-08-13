@@ -69,7 +69,7 @@ const Home = () => {
                   asChild 
                   variant="outline" 
                   size="lg"
-                  className="border-white/50 text-white hover:bg-white/10 hover:border-white text-lg px-8"
+                  className="border-white/50 text-white hover:bg-white/10 hover:border-white hover:text-primary text-lg px-8"
                 >
                   <Link to="/about">Learn More</Link>
                 </Button>
