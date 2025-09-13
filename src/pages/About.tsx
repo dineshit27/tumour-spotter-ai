@@ -221,9 +221,9 @@ const About = () => {
             </Button>
             <Button 
               asChild 
-              variant="outline" 
+              variant="hero" 
               size="lg"
-              className="border-white text-white hover:bg-white/10"
+              className="text-white"
             >
               <Link to="/try-now">Try Our Platform</Link>
             </Button>

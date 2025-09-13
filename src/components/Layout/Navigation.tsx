@@ -50,7 +50,7 @@ const Navigation = () => {
               asChild 
               className="bg-gradient-primary hover:shadow-medical transition-all duration-300"
             >
-              <Link to="/try-now">Get Started</Link>
+              <Link to="/auth">Get Started</Link>
             </Button>
           </div>
 
@@ -91,7 +91,7 @@ const Navigation = () => {
                   asChild 
                   className="w-full bg-gradient-primary hover:shadow-medical"
                 >
-                  <Link to="/try-now" onClick={() => setIsOpen(false)}>
+                  <Link to="/auth" onClick={() => setIsOpen(false)}>
                     Get Started
                   </Link>
                 </Button>

@@ -210,9 +210,9 @@ const Reviews = () => {
             </Button>
             <Button 
               asChild 
-              variant="outline" 
+              variant="hero" 
               size="lg"
-              className="border-white/50 text-white hover:bg-white/10 hover:border-white text-lg px-8"
+              className="text-white text-lg px-8"
             >
               <Link to="/contact">Contact Our Team</Link>
             </Button>
