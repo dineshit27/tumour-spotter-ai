@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { loadModel, predictTumor, isModelReady } from "@/lib/tensorflowModel";
 import { 
   Upload, 
   FileImage, 
@@ -19,8 +20,10 @@ interface AnalysisResult {
   tumorDetected: boolean;
   confidence: number;
   tumorLevel: "None" | "Small" | "Medium" | "Large";
+  tumorType?: string;
   recommendations: string[];
   processingTime: number;
+  allPredictions?: Array<{ class: string; confidence: number }>;
 }
 
 const TryNow = () => {
@@ -28,47 +31,76 @@ const TryNow = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [modelError, setModelError] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const { toast } = useToast();
 
-  // Mock analysis function
-  const performAnalysis = useCallback(async (uploadedFile: File): Promise<AnalysisResult> => {
-    // Simulate analysis progress
-    for (let i = 0; i <= 100; i += 10) {
-      setAnalysisProgress(i);
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    // Mock results based on file name or random
-    const fileName = uploadedFile.name.toLowerCase();
-    const hasPositiveIndicator = fileName.includes('tumor') || fileName.includes('positive') || Math.random() > 0.7;
-    
-    const confidence = Math.random() * 30 + 70; // 70-100%
-    const tumorLevel = hasPositiveIndicator 
-      ? ["Small", "Medium", "Large"][Math.floor(Math.random() * 3)] as "Small" | "Medium" | "Large"
-      : "None" as const;
-
-    const recommendations = hasPositiveIndicator ? [
-      "Immediate consultation with a neurosurgeon recommended",
-      "Additional contrast MRI scan may be beneficial",
-      "Consider molecular testing for treatment planning",
-      "Regular monitoring with follow-up scans every 3 months"
-    ] : [
-      "No immediate intervention required",
-      "Continue with routine monitoring",
-      "Maintain healthy lifestyle practices",
-      "Follow up with your physician as scheduled"
-    ];
-
-    return {
-      tumorDetected: hasPositiveIndicator,
-      confidence: Math.round(confidence),
-      tumorLevel,
-      recommendations: recommendations.slice(0, Math.floor(Math.random() * 2) + 2),
-      processingTime: Math.random() * 2 + 1
+  // Load TensorFlow.js model on component mount
+  useEffect(() => {
+    const initModel = async () => {
+      try {
+        setIsModelLoading(true);
+        await loadModel();
+        setIsModelLoading(false);
+        toast({
+          title: "AI Model Ready",
+          description: "TensorFlow.js model loaded successfully"
+        });
+      } catch (error) {
+        console.error('Model loading error:', error);
+        setModelError(error instanceof Error ? error.message : 'Failed to load AI model');
+        setIsModelLoading(false);
+        toast({
+          title: "Model Loading Failed",
+          description: "Using fallback analysis mode. Upload will still work.",
+          variant: "destructive"
+        });
+      }
     };
-  }, []);
+
+    initModel();
+  }, [toast]);
+
+  // Real TensorFlow.js analysis function
+  const performAnalysis = useCallback(async (uploadedFile: File): Promise<AnalysisResult> => {
+    try {
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => Math.min(prev + 15, 90));
+      }, 200);
+
+      // Perform actual TensorFlow.js inference
+      const prediction = await predictTumor(uploadedFile);
+      
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      
+      return prediction;
+    } catch (error) {
+      console.error('Analysis error:', error);
+      // Fallback to mock analysis if TensorFlow fails
+      toast({
+        title: "Using Fallback Analysis",
+        description: "Real-time AI unavailable, showing demo results",
+        variant: "destructive"
+      });
+      
+      // Simple fallback
+      return {
+        tumorDetected: Math.random() > 0.5,
+        confidence: Math.round(Math.random() * 30 + 70),
+        tumorLevel: "Medium",
+        recommendations: [
+          "AI model unavailable - demo results shown",
+          "Please ensure model files are properly configured",
+          "Consult with medical professionals for actual diagnosis"
+        ],
+        processingTime: 1.5
+      };
+    }
+  }, [toast]);
 
   const handleFileSelect = (selectedFile: File) => {
     // Validate file type
@@ -178,6 +210,27 @@ const TryNow = () => {
             can detect brain tumors with 95% accuracy in seconds.
           </p>
         </div>
+
+        {/* Model Status Alert */}
+        {modelError && (
+          <Alert className="mb-4 border-destructive bg-destructive/5">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive">
+              <strong>Model Error:</strong> {modelError}
+              <br />
+              <span className="text-sm">To use real AI inference, place your converted model at <code>/public/models/brain-tumor-model.json</code></span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isModelLoading && (
+          <Alert className="mb-4 border-primary bg-primary/5">
+            <Loader2 className="h-4 w-4 text-primary animate-spin" />
+            <AlertDescription className="text-primary">
+              <strong>Loading AI Model...</strong> TensorFlow.js is initializing
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Important Notice */}
         <Alert className="mb-8 border-warning bg-warning/5">
@@ -335,7 +388,7 @@ const TryNow = () => {
                       {result.tumorDetected ? "Tumor Detected" : "No Tumor Detected"}
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                     <div>
                       <span className="text-muted-foreground">Confidence:</span>
                       <span className="ml-2 font-semibold">{result.confidence}%</span>
@@ -345,7 +398,36 @@ const TryNow = () => {
                       <span className="ml-2 font-semibold">{result.tumorLevel}</span>
                     </div>
                   </div>
+                  {result.tumorType && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Classification:</span>
+                      <span className="ml-2 font-semibold">{result.tumorType}</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* All Predictions */}
+                {result.allPredictions && isModelReady() && (
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm text-foreground mb-3">Detailed Classification:</h4>
+                    <div className="space-y-2">
+                      {result.allPredictions.map((pred, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{pred.class}</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary" 
+                                style={{ width: `${pred.confidence}%` }}
+                              />
+                            </div>
+                            <span className="font-semibold w-10 text-right">{pred.confidence}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Recommendations */}
                 <div>
@@ -393,7 +475,7 @@ const TryNow = () => {
             <div className="space-y-2">
               <div className="font-semibold text-primary">2. AI Analysis</div>
               <p className="text-muted-foreground">
-                Deep learning models trained on thousands of scans analyze tissue patterns and anomalies.
+                TensorFlow.js CNN model processes images directly in your browser for instant, private analysis.
               </p>
             </div>
             <div className="space-y-2">
