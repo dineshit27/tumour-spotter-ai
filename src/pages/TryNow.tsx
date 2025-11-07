@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { loadModel, predictTumor, isModelReady } from "@/lib/tensorflowModel";
+import { uploadScanToStorage, saveScanHistory } from "@/lib/supabaseStorage";
+import { useNavigate } from "react-router-dom";
 import { 
   Upload, 
   FileImage, 
@@ -13,7 +16,9 @@ import {
   AlertTriangle, 
   Info,
   Loader2,
-  Download
+  Download,
+  LogIn,
+  Save
 } from "lucide-react";
 
 interface AnalysisResult {
@@ -31,11 +36,15 @@ const TryNow = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [savedScanId, setSavedScanId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   // Load TensorFlow.js model on component mount
   useEffect(() => {
@@ -163,10 +172,16 @@ const TryNow = () => {
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);
+    setSavedScanId(null);
     
     try {
       const analysisResult = await performAnalysis(file);
       setResult(analysisResult);
+      
+      // Auto-save if user is authenticated
+      if (isAuthenticated && user) {
+        await handleSaveResults(analysisResult);
+      }
       
       toast({
         title: "Analysis complete",
@@ -181,6 +196,59 @@ const TryNow = () => {
     } finally {
       setIsAnalyzing(false);
       setAnalysisProgress(0);
+    }
+  };
+
+  const handleSaveResults = async (analysisResult?: AnalysisResult) => {
+    if (!user || !file) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save your scans",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const resultToSave = analysisResult || result;
+    if (!resultToSave) return;
+
+    setIsSaving(true);
+    try {
+      // Upload image to storage
+      const { imageUrl, error: uploadError } = await uploadScanToStorage(file, user.id);
+      
+      if (uploadError) {
+        throw new Error(uploadError);
+      }
+
+      // Save analysis results to database
+      const { success, error: saveError, data } = await saveScanHistory(
+        user.id,
+        imageUrl,
+        file.name,
+        file.size,
+        resultToSave
+      );
+
+      if (!success || saveError) {
+        throw new Error(saveError || 'Failed to save scan');
+      }
+
+      setSavedScanId(data?.id || null);
+      
+      toast({
+        title: "Scan saved successfully",
+        description: "Your analysis has been saved to your history"
+      });
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save scan",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -210,6 +278,26 @@ const TryNow = () => {
             can detect brain tumors with 95% accuracy in seconds.
           </p>
         </div>
+
+        {/* Authentication Alert */}
+        {!authLoading && !isAuthenticated && (
+          <Alert className="mb-4 border-primary bg-primary/5">
+            <LogIn className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary flex items-center justify-between">
+              <span>
+                <strong>Sign in to save your scans:</strong> Analysis works without login, but results won't be saved.
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/auth')}
+                className="ml-4"
+              >
+                Sign In
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Model Status Alert */}
         {modelError && (
@@ -448,14 +536,43 @@ const TryNow = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex space-x-4 pt-4">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Report
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset}>
-                    New Analysis
-                  </Button>
+                <div className="space-y-3 pt-4">
+                  {isAuthenticated && !savedScanId && (
+                    <Button 
+                      onClick={() => handleSaveResults()} 
+                      disabled={isSaving}
+                      className="w-full bg-gradient-primary"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save to History
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {savedScanId && (
+                    <Alert className="border-success bg-success/5">
+                      <CheckCircle className="h-4 w-4 text-success" />
+                      <AlertDescription className="text-success">
+                        Scan saved to your history
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex space-x-4">
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Report
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleReset}>
+                      New Analysis
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
