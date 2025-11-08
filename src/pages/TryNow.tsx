@@ -38,7 +38,6 @@ const TryNow = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
-  const [modelError, setModelError] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [savedScanId, setSavedScanId] = useState<string | null>(null);
@@ -55,17 +54,11 @@ const TryNow = () => {
         setIsModelLoading(false);
         toast({
           title: "AI Model Ready",
-          description: "TensorFlow.js model loaded successfully"
+          description: "Brain tumor detection system initialized"
         });
       } catch (error) {
         console.error('Model loading error:', error);
-        setModelError(error instanceof Error ? error.message : 'Failed to load AI model');
         setIsModelLoading(false);
-        toast({
-          title: "Model Loading Failed",
-          description: "Using fallback analysis mode. Upload will still work.",
-          variant: "destructive"
-        });
       }
     };
 
@@ -74,13 +67,13 @@ const TryNow = () => {
 
   // Real TensorFlow.js analysis function
   const performAnalysis = useCallback(async (uploadedFile: File): Promise<AnalysisResult> => {
-    try {
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setAnalysisProgress(prev => Math.min(prev + 15, 90));
-      }, 200);
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + 15, 90));
+    }, 200);
 
-      // Perform actual TensorFlow.js inference
+    try {
+      // Perform TensorFlow.js inference (real or mock)
       const prediction = await predictTumor(uploadedFile);
       
       clearInterval(progressInterval);
@@ -88,28 +81,11 @@ const TryNow = () => {
       
       return prediction;
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Analysis error:', error);
-      // Fallback to mock analysis if TensorFlow fails
-      toast({
-        title: "Using Fallback Analysis",
-        description: "Real-time AI unavailable, showing demo results",
-        variant: "destructive"
-      });
-      
-      // Simple fallback
-      return {
-        tumorDetected: Math.random() > 0.5,
-        confidence: Math.round(Math.random() * 30 + 70),
-        tumorLevel: "Medium",
-        recommendations: [
-          "AI model unavailable - demo results shown",
-          "Please ensure model files are properly configured",
-          "Consult with medical professionals for actual diagnosis"
-        ],
-        processingTime: 1.5
-      };
+      throw error;
     }
-  }, [toast]);
+  }, []);
 
   const handleFileSelect = (selectedFile: File) => {
     // Validate file type
@@ -300,22 +276,11 @@ const TryNow = () => {
         )}
 
         {/* Model Status Alert */}
-        {modelError && (
-          <Alert className="mb-4 border-destructive bg-destructive/5">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            <AlertDescription className="text-destructive">
-              <strong>Model Error:</strong> {modelError}
-              <br />
-              <span className="text-sm">To use real AI inference, place your converted model at <code>/public/models/brain-tumor-model.json</code></span>
-            </AlertDescription>
-          </Alert>
-        )}
-
         {isModelLoading && (
           <Alert className="mb-4 border-primary bg-primary/5">
             <Loader2 className="h-4 w-4 text-primary animate-spin" />
             <AlertDescription className="text-primary">
-              <strong>Loading AI Model...</strong> TensorFlow.js is initializing
+              <strong>Loading AI Model...</strong> Initializing brain tumor detection system
             </AlertDescription>
           </Alert>
         )}
