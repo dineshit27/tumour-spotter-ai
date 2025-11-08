@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Brain, Menu, X, User, LogOut, History, GitCompare } from "lucide-react";
+import { Brain, Menu, X, User, LogOut, History } from "lucide-react";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +41,6 @@ const Navigation = () => {
     { name: "Home", path: "/" },
     { name: "About Us", path: "/about" },
     { name: "Try Now", path: "/try-now" },
-    { name: "Compare", path: "/comparison" },
     { name: "Reviews", path: "/reviews" },
     { name: "Contact", path: "/contact" },
   ];
@@ -91,10 +90,6 @@ const Navigation = () => {
                   <DropdownMenuItem onClick={() => navigate('/try-now')}>
                     <History className="mr-2 h-4 w-4" />
                     My Scans
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/comparison')}>
-                    <GitCompare className="mr-2 h-4 w-4" />
-                    Compare Scans
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -161,17 +156,6 @@ const Navigation = () => {
                     >
                       <History className="mr-2 h-4 w-4" />
                       My Scans
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        navigate('/comparison');
-                        setIsOpen(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <GitCompare className="mr-2 h-4 w-4" />
-                      Compare Scans
                     </Button>
                     <Button 
                       onClick={() => {

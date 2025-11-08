@@ -11,7 +11,6 @@ import TryNow from "./pages/TryNow";
 import Reviews from "./pages/Reviews";
 import Contact from "./pages/Contact";
 import Auth from "./pages/Auth";
-import Comparison from "./pages/Comparison";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +27,6 @@ const App = () => (
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/try-now" element={<TryNow />} />
-              <Route path="/comparison" element={<Comparison />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth" element={<Auth />} />
