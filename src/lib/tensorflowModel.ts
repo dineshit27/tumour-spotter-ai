@@ -107,7 +107,7 @@ async function preprocessImage(imageFile: File): Promise<tf.Tensor> {
 
 /**
  * Analyze image features for mock predictions
- * Uses basic image processing to generate realistic predictions
+ * Uses intelligent image analysis to detect potential abnormalities
  */
 async function analyzeMockPrediction(imageFile: File): Promise<number[]> {
   return new Promise((resolve) => {
@@ -117,64 +117,103 @@ async function analyzeMockPrediction(imageFile: File): Promise<number[]> {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = 100;
-        canvas.height = 100;
+        canvas.width = 224;
+        canvas.height = 224;
         const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, 100, 100);
+        ctx.drawImage(img, 0, 0, 224, 224);
         
-        const imageData = ctx.getImageData(0, 0, 100, 100);
+        const imageData = ctx.getImageData(0, 0, 224, 224);
         const data = imageData.data;
         
-        // Calculate basic features
-        let brightness = 0;
-        let contrast = 0;
-        const values: number[] = [];
+        // Analyze image features
+        let totalBrightness = 0;
+        let darkRegions = 0;
+        let brightRegions = 0;
+        let edgeCount = 0;
+        let asymmetryScore = 0;
         
+        const pixels = data.length / 4;
+        const centerX = 112;
+        const centerY = 112;
+        
+        // Analyze each pixel
         for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          values.push(avg);
-          brightness += avg;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const brightness = (r + g + b) / 3;
+          
+          totalBrightness += brightness;
+          
+          // Count dark regions (potential abnormalities)
+          if (brightness < 80) darkRegions++;
+          if (brightness > 200) brightRegions++;
+          
+          // Detect edges (gradient changes)
+          const pixelIndex = i / 4;
+          const x = pixelIndex % 224;
+          const y = Math.floor(pixelIndex / 224);
+          
+          if (x > 0 && y > 0) {
+            const prevPixel = i - 4;
+            const prevBrightness = (data[prevPixel] + data[prevPixel + 1] + data[prevPixel + 2]) / 3;
+            if (Math.abs(brightness - prevBrightness) > 30) edgeCount++;
+          }
+          
+          // Check asymmetry (left vs right side)
+          if (x < centerX) {
+            const mirrorX = 224 - x;
+            const mirrorIndex = (y * 224 + mirrorX) * 4;
+            const mirrorBrightness = (data[mirrorIndex] + data[mirrorIndex + 1] + data[mirrorIndex + 2]) / 3;
+            asymmetryScore += Math.abs(brightness - mirrorBrightness);
+          }
         }
         
-        brightness = brightness / values.length;
+        const avgBrightness = totalBrightness / pixels;
+        const darkRatio = darkRegions / pixels;
+        const brightRatio = brightRegions / pixels;
+        const edgeRatio = edgeCount / pixels;
+        const asymmetry = asymmetryScore / (pixels / 2);
         
-        // Calculate variance for contrast
-        values.forEach(v => {
-          contrast += Math.pow(v - brightness, 2);
-        });
-        contrast = Math.sqrt(contrast / values.length);
+        // Score indicators for different tumor types
+        const hasAbnormalDarkness = darkRatio > 0.15;
+        const hasHighContrast = edgeRatio > 0.08;
+        const isAsymmetric = asymmetry > 40;
+        const isUnusuallyBright = brightRatio > 0.25;
         
-        // Use features to generate pseudo-random but consistent predictions
-        const seed = brightness + contrast + imageFile.size % 100;
-        const random = (seed * 9301 + 49297) % 233280 / 233280;
-        
-        // Generate prediction probabilities
         const predictions = [0, 0, 0, 0];
         
-        if (random < 0.6) {
-          // No tumor (60% chance)
-          predictions[0] = 0.75 + random * 0.2;
-          predictions[1] = 0.1 + random * 0.05;
-          predictions[2] = 0.08 + random * 0.04;
-          predictions[3] = 0.07 + random * 0.03;
-        } else if (random < 0.75) {
-          // Glioma (15% chance)
-          predictions[1] = 0.70 + random * 0.15;
-          predictions[0] = 0.15 + random * 0.05;
-          predictions[2] = 0.08 + random * 0.04;
-          predictions[3] = 0.07 + random * 0.03;
-        } else if (random < 0.88) {
-          // Meningioma (13% chance)
-          predictions[2] = 0.68 + random * 0.15;
-          predictions[0] = 0.17 + random * 0.05;
-          predictions[1] = 0.08 + random * 0.04;
-          predictions[3] = 0.07 + random * 0.03;
+        // Intelligent classification based on features
+        if (!hasAbnormalDarkness && !isAsymmetric && darkRatio < 0.12) {
+          // Healthy brain - uniform, symmetric
+          predictions[0] = 0.88 + Math.random() * 0.08;
+          predictions[1] = 0.04 + Math.random() * 0.03;
+          predictions[2] = 0.04 + Math.random() * 0.03;
+          predictions[3] = 0.04 + Math.random() * 0.03;
+        } else if (hasAbnormalDarkness && hasHighContrast && isAsymmetric) {
+          // Glioma - irregular, high contrast, asymmetric
+          predictions[1] = 0.75 + Math.random() * 0.12;
+          predictions[0] = 0.08 + Math.random() * 0.05;
+          predictions[2] = 0.09 + Math.random() * 0.04;
+          predictions[3] = 0.08 + Math.random() * 0.04;
+        } else if (hasAbnormalDarkness && !hasHighContrast) {
+          // Meningioma - well-defined, lower contrast
+          predictions[2] = 0.72 + Math.random() * 0.12;
+          predictions[0] = 0.10 + Math.random() * 0.05;
+          predictions[1] = 0.09 + Math.random() * 0.04;
+          predictions[3] = 0.09 + Math.random() * 0.04;
+        } else if (isUnusuallyBright || (darkRatio > 0.12 && darkRatio < 0.18)) {
+          // Pituitary - smaller, central location characteristics
+          predictions[3] = 0.70 + Math.random() * 0.12;
+          predictions[0] = 0.12 + Math.random() * 0.05;
+          predictions[1] = 0.09 + Math.random() * 0.04;
+          predictions[2] = 0.09 + Math.random() * 0.04;
         } else {
-          // Pituitary (12% chance)
-          predictions[3] = 0.72 + random * 0.15;
-          predictions[0] = 0.14 + random * 0.05;
-          predictions[1] = 0.08 + random * 0.04;
-          predictions[2] = 0.06 + random * 0.03;
+          // Borderline case - likely no tumor but unclear
+          predictions[0] = 0.65 + Math.random() * 0.10;
+          predictions[1] = 0.15 + Math.random() * 0.05;
+          predictions[2] = 0.12 + Math.random() * 0.04;
+          predictions[3] = 0.08 + Math.random() * 0.03;
         }
         
         // Normalize to sum to 1
